@@ -15,7 +15,7 @@ cliente.connect((TCP_IP, TCP_PORTA))
 cliente.send(MENSAGEM.encode('UTF-8'))
 
 # recebe dados do servidor 
-data, addr = cliente.recvfrom(1024)
+data, addr = cliente.recvfrom(TAMANHO_BUFFER)
 
 # fecha conexão com servidor
 cliente.close()
