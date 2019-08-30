@@ -19,10 +19,11 @@ cliente = SSL.Connection(context, sock)
 # Conecta ao servidor em IP e porta especifica
 cliente.connect((TCP_IP, TCP_PORTA))
 
-# envia mensagem para servidor 
 MENSAGEM = ""
 while MENSAGEM.lower() != "quit":
     MENSAGEM  = input("Digite sua mensagem para o servidor: ")
+    
+    # envia mensagem para servidor 
     cliente.send(MENSAGEM.encode('UTF-8'))
 
     # recebe dados do servidor 
