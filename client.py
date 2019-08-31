@@ -14,6 +14,7 @@ IP = args.ip
 PORT = args.port
 BUFFER_SIZE = 2048
 USE_SSL = args.nossl
+COMMAND_PREFIX = '/'
 
 # Criação de socket TCP do cliente
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -35,6 +36,7 @@ client.connect((IP, PORT))
 
 # Envia nome de usuario
 client.send(username.encode("UTF-8"))
+print(f"Conectado como {username}!")
 
 class Receiver(threading.Thread):
 
@@ -44,8 +46,17 @@ class Receiver(threading.Thread):
 
     def run(self):
         while True:
-            msg = self.conn.recv(BUFFER_SIZE).decode("UTF-8")
-            print(msg)
+            try:
+                msg = self.conn.recv(BUFFER_SIZE).decode("UTF-8")
+                print(msg)
+            #Acontece quando o servidor ou o cliente termina a conexao
+            except SSL.ZeroReturnError:
+                print("Desconectado!")
+                break
+            # O mesmo porem quando o SSL esta desativado
+            except ConnectionAbortedError:
+                print("Desconectado!")
+                break
 
 receiver_thread = Receiver(client)
 receiver_thread.start()
@@ -53,9 +64,17 @@ receiver_thread.start()
 while True:
     msg = input()
     client.send(msg.encode("UTF-8"))
-    if msg == "quit":
-        if USE_SSL:
-            client.shutdown()
-        else:
-            client.close()
-        break
+
+    if msg.startswith(COMMAND_PREFIX):
+        # Remove prefixo da mensagem
+        msg = msg[1:]
+        
+        # Separa argumentos
+        cmd_args = msg.split()
+
+        if cmd_args[0].lower() == "quit":
+            if USE_SSL:
+                client.shutdown()
+            else:
+                client.close()
+            break

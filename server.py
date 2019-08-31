@@ -15,6 +15,7 @@ PORT = args.port
 BUFFER_SIZE = 2048
 USE_SSL = args.nossl
 MAX_CLIENTS = args.max_clients
+COMMAND_PREFIX = '/'
 
 # Criação de socket TCP do servidor
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -47,28 +48,45 @@ class ClientThread(threading.Thread):
 
     def disconnect(self):
 
-        if USE_SSL:
-            self.conn.shutdown()
-        else:
-            self.conn.close()
-
-        client_list.remove(((self.conn, self.addr), self.username))
-        print(f"Usuario {self.username} {addr} desconectado.") 
+        try:
+            if USE_SSL:
+                self.conn.shutdown()
+            else:
+                self.conn.close()
+        except:
+            pass
+        finally:
+            client_list.remove(((self.conn, self.addr), self.username))
+            print(f"Usuario {self.username} {addr} desconectado.") 
     
     def run(self):
         while True:
           
             msg = self.conn.recv(BUFFER_SIZE).decode("UTF-8")
             
-            if msg == "quit":
-                self.disconnect()
-                break
+            # Verifica se mensagem eh um comando
+            if msg.startswith(COMMAND_PREFIX):
+                # Remove prefixo da mensagem
+                msg = msg[1:]
+                
+                # Separa argumentos
+                cmd_args = msg.split()
 
-            # Repassa a mensagem para os outros clientes
-            for client in client_list:
-                client_conn = client[0][0]
-                if client_conn != self.conn:
-                    client_conn.send(f"{self.username} : {msg}".encode("UTF-8"))
+                if cmd_args[0].lower() == "quit":
+                    self.disconnect()
+                    break
+                elif cmd_args[0].lower() == "users":
+                    reply = "Usuarios conectados:"
+                    for client in client_list:
+                        reply += f"\n{client[1]}"
+                    conn.send(reply.encode("UTF-8"))
+                    
+            else:
+                # Repassa a mensagem para os outros clientes
+                for client in client_list:
+                    client_conn = client[0][0]
+                    if client_conn != self.conn:
+                        client_conn.send(f"{self.username} : {msg}".encode("UTF-8"))
             
 
 
