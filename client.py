@@ -1,23 +1,36 @@
-import socket #importa modulo socket
+import argparse
+import socket
+from OpenSSL import SSL
 
-TCP_IP = '127.0.0.1' # endereço IP do servidor 
-TCP_PORTA = 24000      # porta disponibilizada pelo servidor
-TAMANHO_BUFFER = 2048
+parser = argparse.ArgumentParser()
+parser.add_argument('--ip', type=str, default="127.0.0.1")
+parser.add_argument('--port', type=int, default=41706)
+parser.add_argument('--nossl', action="store_false")
+parser.add_argument('--max_clients', type=int, default=5)
+args = parser.parse_args()
 
-MENSAGEM  = input("Digite sua mensagem para o servidor: ")
+IP = args.ip
+PORT = args.port
+BUFFER_SIZE = 2048
+USE_SSL = args.nossl
 
 # Criação de socket TCP do cliente
-cliente = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-# Conecta ao servidor em IP e porta especifica 
-cliente.connect((TCP_IP, TCP_PORTA))
+client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-# envia mensagem para servidor 
-cliente.send(MENSAGEM.encode('UTF-8'))
+if USE_SSL:
+    # Configurando SSL
+    context = SSL.Context(SSL.SSLv23_METHOD)
+    context.use_certificate_file('cert.pem')
+    context.use_privatekey_file('key.pem')
+    client = SSL.Connection(context, client)
 
-# recebe dados do servidor 
-data, addr = cliente.recvfrom(TAMANHO_BUFFER)
+username = input("Digite seu nome: ")
+# Garantimos que o nome tenha 12 caracteres
+if len(username) > 12:
+    username = username[:12]
 
-# fecha conexão com servidor
-cliente.close()
+# Conecta ao servidor
+client.connect((IP, PORT))
 
-print ("received data:", data)
+# Envia nome de usuario
+client.send(username.encode("UTF-8"))
