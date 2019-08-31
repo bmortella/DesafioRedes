@@ -63,8 +63,13 @@ class ClientThread(threading.Thread):
             if msg == "quit":
                 self.disconnect()
                 break
+
+            # Repassa a mensagem para os outros clientes
+            for client in client_list:
+                client_conn = client[0][0]
+                if client_conn != self.conn:
+                    client_conn.send(f"{self.username} : {msg}".encode("UTF-8"))
             
-            print(f"{self.username} : {msg}")
 
 
 # Espera por conexoes e aceita
@@ -80,4 +85,3 @@ while True:
 
     # Inicia thread
     ClientThread(username, conn, addr).start()
-    #print(client_list)
