@@ -1,5 +1,6 @@
 import argparse
 import socket
+import threading
 from OpenSSL import SSL
 
 parser = argparse.ArgumentParser()
@@ -30,12 +31,53 @@ server.bind((IP, PORT))
 server.listen(MAX_CLIENTS)
 print(f"Servidor escutando na porta {PORT} com SSL {'ativo' if USE_SSL else 'inativo'}.")
 
+client_list = list()
+
+'''
+Thread que lida com os clientes, a funcao dela eh receber
+as mensagens, processar e enviar para os outros clientes
+'''
+class ClientThread(threading.Thread):
+    
+    def __init__(self, username, conn, addr):
+        threading.Thread.__init__(self)
+        self.username = username
+        self.conn = conn
+        self.addr = addr
+
+    def disconnect(self):
+
+        if USE_SSL:
+            self.conn.shutdown()
+        else:
+            self.conn.close()
+
+        client_list.remove(((self.conn, self.addr), self.username))
+        print(f"Usuario {self.username} {addr} desconectado.") 
+    
+    def run(self):
+        while True:
+          
+            msg = self.conn.recv(BUFFER_SIZE).decode("UTF-8")
+            
+            if msg == "quit":
+                self.disconnect()
+                break
+            
+            print(f"{self.username} : {msg}")
+
+
+# Espera por conexoes e aceita
 while True:
 
     conn, addr = server.accept()
 
+    # Recebe nome de ate 12 caracteres
     username = conn.recv(12).decode("UTF-8")
+    # Registra cliente
+    client_list.append(((conn, addr), username))
     print(f"Usuario {username} {addr} conectado.")
 
     # Inicia thread
-    break
+    ClientThread(username, conn, addr).start()
+    #print(client_list)

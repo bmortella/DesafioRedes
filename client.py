@@ -34,3 +34,13 @@ client.connect((IP, PORT))
 
 # Envia nome de usuario
 client.send(username.encode("UTF-8"))
+
+while True:
+    msg = input("> ")
+    client.send(msg.encode("UTF-8"))
+    if msg == "quit":
+        if USE_SSL:
+            client.shutdown()
+        else:
+            client.close()
+        break
