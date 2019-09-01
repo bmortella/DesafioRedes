@@ -1,3 +1,4 @@
+import os
 import argparse
 import socket
 import threading
@@ -63,18 +64,36 @@ receiver_thread.start()
 
 while True:
     msg = input()
-    client.send(msg.encode("UTF-8"))
 
     if msg.startswith(COMMAND_PREFIX):
-        # Remove prefixo da mensagem
-        msg = msg[1:]
         
         # Separa argumentos
         cmd_args = msg.split()
+        # Remove prefixo do comando e o coloca tudo em letra minuscula
+        cmd_args[0] = cmd_args[0][1:].lower()
 
-        if cmd_args[0].lower() == "quit":
+        if cmd_args[0] == "quit":
+            client.send(msg.encode("UTF-8"))
             if USE_SSL:
                 client.shutdown()
             else:
                 client.close()
             break
+        elif cmd_args[0] == "upload":
+            file_size = os.stat(cmd_args[1]).st_size
+            msg = msg + " " + str(file_size)
+            client.send(msg.encode("UTF-8"))
+
+            print("Enviando arquivo")
+            sent = 0
+            with open(cmd_args[1], "rb") as f:
+                while sent < file_size:
+                    data = f.read(BUFFER_SIZE)
+                    client.send(data)
+                    sent += len(data)
+            print("Arquivo enviado")
+        else:
+            print("[!] Esse comando não existe.")
+    else:
+        client.send(msg.encode("UTF-8"))
+            

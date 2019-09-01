@@ -34,6 +34,12 @@ print(f"Servidor escutando na porta {PORT} com SSL {'ativo' if USE_SSL else 'ina
 
 client_list = list()
 
+
+def server_broadcast(msg):
+    for client in client_list:
+        client[0][0].send(msg.encode("UTF-8"))
+
+
 '''
 Thread que lida com os clientes, a funcao dela eh receber
 as mensagens, processar e enviar para os outros clientes
@@ -57,7 +63,8 @@ class ClientThread(threading.Thread):
             pass
         finally:
             client_list.remove(((self.conn, self.addr), self.username))
-            print(f"Usuario {self.username} {addr} desconectado.") 
+            print(f"Usuario {self.username} {addr} desconectado.")
+            server_broadcast(f"Usuario {self.username} se desconectou.")
     
     def run(self):
         while True:
@@ -71,15 +78,28 @@ class ClientThread(threading.Thread):
                 
                 # Separa argumentos
                 cmd_args = msg.split()
+                cmd_args[0] = cmd_args[0].lower()
 
-                if cmd_args[0].lower() == "quit":
+                if cmd_args[0] == "quit":
                     self.disconnect()
                     break
-                elif cmd_args[0].lower() == "users":
+                elif cmd_args[0] == "users":
                     reply = "Usuarios conectados:"
                     for client in client_list:
                         reply += f"\n{client[1]}"
                     conn.send(reply.encode("UTF-8"))
+                elif cmd_args[0] == "upload":
+                    file_name = cmd_args[1]
+                    file_size = int(cmd_args[2])
+
+                    received = 0
+                    with open("envios/" + file_name, "wb") as f:
+                        print(f"Recebendo arquivo {file_name} ({file_size} bytes) do usuario {self.username}")
+                        while received < file_size:
+                            data = self.conn.recv(BUFFER_SIZE)
+                            f.write(data)
+                            received += len(data)
+
                     
             else:
                 # Repassa a mensagem para os outros clientes
@@ -100,6 +120,7 @@ while True:
     # Registra cliente
     client_list.append(((conn, addr), username))
     print(f"Usuario {username} {addr} conectado.")
+    server_broadcast(f"Usuario {username} se conectou.")
 
     # Inicia thread
     ClientThread(username, conn, addr).start()
