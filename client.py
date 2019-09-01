@@ -2,7 +2,7 @@ import os
 import argparse
 import socket
 import threading
-import pathlib
+from pathlib import Path
 from OpenSSL import SSL
 
 parser = argparse.ArgumentParser()
@@ -82,7 +82,7 @@ while True:
             break
         elif cmd_args[0] == "upload":
 
-            file_path = pathlib.Path(cmd_args[1])
+            file_path = Path(cmd_args[1])
             if file_path.exists() and not file_path.is_dir():
                 file_name = file_path.name
                 file_size = os.stat(file_path).st_size
@@ -100,7 +100,8 @@ while True:
             else:
                 print("[!] Arquivo nao encontrado.")
         else:
-            print("[!] Esse comando não existe.")
+            client.send(msg.encode("UTF-8"))
+            #print("[!] Esse comando não existe.")
     else:
         client.send(msg.encode("UTF-8"))
             

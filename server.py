@@ -1,6 +1,7 @@
 import argparse
 import socket
 import threading
+from pathlib import Path
 from OpenSSL import SSL
 
 parser = argparse.ArgumentParser()
@@ -16,6 +17,7 @@ BUFFER_SIZE = 2048
 USE_SSL = args.nossl
 MAX_CLIENTS = args.max_clients
 COMMAND_PREFIX = '/'
+FILES_DIR = 'envios'
 
 # Criação de socket TCP do servidor
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -84,9 +86,15 @@ class ClientThread(threading.Thread):
                     self.disconnect()
                     break
                 elif cmd_args[0] == "users":
-                    reply = "Usuarios conectados:"
+                    reply = "[!] Usuarios conectados:"
                     for client in client_list:
                         reply += f"\n{client[1]}"
+                    self.conn.send(reply.encode("UTF-8"))
+                elif cmd_args[0] == "ls":
+                    reply = "[!] Arquivos:"
+                    for item in Path(FILES_DIR).iterdir():
+                        if item.is_file():
+                            reply += f"\n{item.name}"
                     self.conn.send(reply.encode("UTF-8"))
                 elif cmd_args[0] == "upload":
                     file_name = cmd_args[1]
@@ -100,6 +108,8 @@ class ClientThread(threading.Thread):
                             f.write(data)
                             received += len(data)
                         print(f"Arquivo {file_name} ({file_size} bytes) do usuario {self.username} recebido.")
+                else:
+                    self.conn.send("[!] Esse comando não existe.")
 
                     
             else:
