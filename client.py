@@ -2,6 +2,7 @@ import os
 import argparse
 import socket
 import threading
+import pathlib
 from OpenSSL import SSL
 
 parser = argparse.ArgumentParser()
@@ -37,7 +38,7 @@ client.connect((IP, PORT))
 
 # Envia nome de usuario
 client.send(username.encode("UTF-8"))
-print(f"Conectado como {username}!")
+print(f"Conectado como {username}! Digite /quit para sair.")
 
 class Receiver(threading.Thread):
 
@@ -52,11 +53,11 @@ class Receiver(threading.Thread):
                 print(msg)
             #Acontece quando o servidor ou o cliente termina a conexao
             except SSL.ZeroReturnError:
-                print("Desconectado!")
+                print("[!] Desconectado!")
                 break
             # O mesmo porem quando o SSL esta desativado
             except ConnectionAbortedError:
-                print("Desconectado!")
+                print("[!] Desconectado!")
                 break
 
 receiver_thread = Receiver(client)
@@ -69,7 +70,7 @@ while True:
         
         # Separa argumentos
         cmd_args = msg.split()
-        # Remove prefixo do comando e o coloca tudo em letra minuscula
+        # Remove prefixo do comando e coloca tudo em letra minuscula
         cmd_args[0] = cmd_args[0][1:].lower()
 
         if cmd_args[0] == "quit":
@@ -80,17 +81,24 @@ while True:
                 client.close()
             break
         elif cmd_args[0] == "upload":
-            file_size = os.stat(cmd_args[1]).st_size
-            msg = msg + " " + str(file_size)
-            client.send(msg.encode("UTF-8"))
 
-            print("Enviando arquivo")
-            with open(cmd_args[1], "rb") as f:
-                data = f.read(BUFFER_SIZE)
-                while data:
-                    client.send(data)
+            file_path = pathlib.Path(cmd_args[1])
+            if file_path.exists() and not file_path.is_dir():
+                file_name = file_path.name
+                file_size = os.stat(file_path).st_size
+
+                msg = f"{COMMAND_PREFIX}upload {file_name} {file_size}"
+                client.send(msg.encode("UTF-8"))
+
+                print("[!] Enviando arquivo")
+                with open(file_path, "rb") as f:
                     data = f.read(BUFFER_SIZE)
-            print("Arquivo enviado")
+                    while data:
+                        client.send(data)
+                        data = f.read(BUFFER_SIZE)
+                print("[!] Arquivo enviado")
+            else:
+                print("[!] Arquivo nao encontrado.")
         else:
             print("[!] Esse comando não existe.")
     else:

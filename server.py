@@ -99,6 +99,7 @@ class ClientThread(threading.Thread):
                             data = self.conn.recv(BUFFER_SIZE)
                             f.write(data)
                             received += len(data)
+                        print(f"Arquivo {file_name} ({file_size} bytes) do usuario {self.username} recebido.")
 
                     
             else:
