@@ -57,7 +57,7 @@ class ClientThread(threading.Thread):
             pass
         finally:
             client_list.remove(((self.conn, self.addr), self.username))
-            print(f"Usuario {self.username} {addr} desconectado.") 
+            print(f"Usuario {self.username} {self.addr} desconectado.") 
     
     def run(self):
         while True:
@@ -79,7 +79,7 @@ class ClientThread(threading.Thread):
                     reply = "Usuarios conectados:"
                     for client in client_list:
                         reply += f"\n{client[1]}"
-                    conn.send(reply.encode("UTF-8"))
+                    self.conn.send(reply.encode("UTF-8"))
                     
             else:
                 # Repassa a mensagem para os outros clientes
