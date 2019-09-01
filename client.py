@@ -85,12 +85,11 @@ while True:
             client.send(msg.encode("UTF-8"))
 
             print("Enviando arquivo")
-            sent = 0
             with open(cmd_args[1], "rb") as f:
-                while sent < file_size:
-                    data = f.read(BUFFER_SIZE)
+                data = f.read(BUFFER_SIZE)
+                while data:
                     client.send(data)
-                    sent += len(data)
+                    data = f.read(BUFFER_SIZE)
             print("Arquivo enviado")
         else:
             print("[!] Esse comando não existe.")
