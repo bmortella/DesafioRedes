@@ -10,6 +10,7 @@ parser.add_argument('--ip', type=str, default="127.0.0.1")
 parser.add_argument('--port', type=int, default=41706)
 parser.add_argument('--nossl', action="store_false")
 parser.add_argument('--max_clients', type=int, default=5)
+parser.add_argument('--username', type=str, default=None)
 args = parser.parse_args()
 
 IP = args.ip
@@ -17,6 +18,7 @@ PORT = args.port
 BUFFER_SIZE = 2048
 USE_SSL = args.nossl
 COMMAND_PREFIX = '/'
+FILES_DIR = 'downloads/'
 
 # Criação de socket TCP do cliente
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -28,7 +30,9 @@ if USE_SSL:
     context.use_privatekey_file('key.pem')
     client = SSL.Connection(context, client)
 
-username = input("Digite seu nome: ")
+username = args.username
+if not username:
+    username = input("Digite seu nome: ")
 # Garantimos que o nome tenha 12 caracteres
 if len(username) > 12:
     username = username[:12]
@@ -50,7 +54,23 @@ class Receiver(threading.Thread):
         while True:
             try:
                 msg = self.conn.recv(BUFFER_SIZE).decode("UTF-8")
-                print(msg)
+
+                if msg.startswith(COMMAND_PREFIX + "download"):
+                    download_args = msg.split()
+                    file_path = Path(FILES_DIR) / Path(download_args[1])
+                    file_size = int(download_args[2])
+
+                    print(f"[!] Recebendo {file_path.name}.")
+                    received = 0
+                    with open(file_path, 'wb') as f:
+                        while received < file_size:
+                            data = self.conn.recv(BUFFER_SIZE)
+                            f.write(data)
+                            received += len(data)
+                    print(f"[!] Arquivo recebido.")
+
+                else:
+                    print(msg)
             #Acontece quando o servidor ou o cliente termina a conexao
             except SSL.ZeroReturnError:
                 print("[!] Desconectado!")

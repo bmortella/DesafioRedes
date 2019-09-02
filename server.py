@@ -1,3 +1,4 @@
+import os
 import argparse
 import socket
 import threading
@@ -17,7 +18,7 @@ BUFFER_SIZE = 2048
 USE_SSL = args.nossl
 MAX_CLIENTS = args.max_clients
 COMMAND_PREFIX = '/'
-FILES_DIR = 'envios'
+FILES_DIR = 'envios/'
 
 # Criação de socket TCP do servidor
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -101,15 +102,28 @@ class ClientThread(threading.Thread):
                     file_size = int(cmd_args[2])
 
                     received = 0
-                    with open("envios/" + file_name, "wb") as f:
+                    with open(FILES_DIR + file_name, "wb") as f:
                         print(f"Recebendo arquivo {file_name} ({file_size} bytes) do usuario {self.username}")
                         while received < file_size:
                             data = self.conn.recv(BUFFER_SIZE)
                             f.write(data)
                             received += len(data)
                         print(f"Arquivo {file_name} ({file_size} bytes) do usuario {self.username} recebido.")
+                        server_broadcast(f"[!] Usuario {self.username} enviou o arquivo {file_name}.")
+                elif cmd_args[0] == "download":
+                    file_path = Path(FILES_DIR) / Path(cmd_args[1])
+                    if file_path.exists():
+                        file_size = os.stat(file_path).st_size
+                        self.conn.send(f"{COMMAND_PREFIX}download {file_path.name} {file_size}".encode("UTF-8"))
+                        with open(file_path, "rb") as f:
+                            data = f.read(2048)
+                            while data:
+                                self.conn.send(data)
+                                data = f.read(2048)
+                    else:
+                        self.conn.send("[!] Arquivo não encontrado.".encode("UTF-8"))
                 else:
-                    self.conn.send("[!] Esse comando não existe.")
+                    self.conn.send("[!] Esse comando não existe.".encode("UTF-8"))
 
                     
             else:
