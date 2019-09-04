@@ -13,6 +13,7 @@ parser.add_argument('--max_clients', type=int, default=5)
 parser.add_argument('--username', type=str, default=None)
 args = parser.parse_args()
 
+# Configuracoes basicas
 IP = args.ip
 PORT = args.port
 BUFFER_SIZE = 2048
@@ -44,6 +45,7 @@ client.connect((IP, PORT))
 client.send(username.encode("UTF-8"))
 print(f"Conectado como {username}! Digite /quit para sair.")
 
+# Thread para receber mensagens do servidor
 class Receiver(threading.Thread):
 
     def __init__(self, conn):
@@ -55,6 +57,7 @@ class Receiver(threading.Thread):
             try:
                 msg = self.conn.recv(BUFFER_SIZE).decode("UTF-8")
 
+                # Quando o servidor for enviar um arquivo requisitado
                 if msg.startswith(COMMAND_PREFIX + "download"):
                     download_args = msg.split()
                     file_path = Path(FILES_DIR) / Path(download_args[1])
@@ -80,9 +83,11 @@ class Receiver(threading.Thread):
                 print("[!] Desconectado!")
                 break
 
+# Iniciamos a thread apos conectarmos com o servidor
 receiver_thread = Receiver(client)
 receiver_thread.start()
 
+# Loop para enviar mensagens ao servidor
 while True:
     msg = input()
 
@@ -94,12 +99,14 @@ while True:
         cmd_args[0] = cmd_args[0][1:].lower()
 
         if cmd_args[0] == "quit":
+            # Enviamos o comando para que o servidor tambem feche a conexao
             client.send(msg.encode("UTF-8"))
             if USE_SSL:
                 client.shutdown()
             else:
                 client.close()
             break
+
         elif cmd_args[0] == "upload":
 
             file_path = Path(cmd_args[1])

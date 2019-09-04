@@ -12,6 +12,7 @@ parser.add_argument('--nossl', action="store_false")
 parser.add_argument('--max_clients', type=int, default=5)
 args = parser.parse_args()
 
+# Configuracoes basicas
 IP = args.ip
 PORT = args.port
 BUFFER_SIZE = 2048
@@ -64,6 +65,7 @@ class ClientThread(threading.Thread):
                 self.conn.close()
         except:
             pass
+        # Garantimos que o cliente seja removido da lista de clientes
         finally:
             client_list.remove(((self.conn, self.addr), self.username))
             print(f"Usuario {self.username} {self.addr} desconectado.")
@@ -86,17 +88,23 @@ class ClientThread(threading.Thread):
                 if cmd_args[0] == "quit":
                     self.disconnect()
                     break
+
+                # Ver os usuarios conectados
                 elif cmd_args[0] == "users":
                     reply = "[!] Usuarios conectados:"
                     for client in client_list:
                         reply += f"\n{client[1]}"
                     self.conn.send(reply.encode("UTF-8"))
+
+                # Ver os arquivos enviados
                 elif cmd_args[0] == "ls":
                     reply = "[!] Arquivos:"
                     for item in Path(FILES_DIR).iterdir():
                         if item.is_file():
                             reply += f"\n{item.name}"
                     self.conn.send(reply.encode("UTF-8"))
+
+                # Receber arquivo de um cliente
                 elif cmd_args[0] == "upload":
                     file_name = cmd_args[1]
                     file_size = int(cmd_args[2])
@@ -110,6 +118,8 @@ class ClientThread(threading.Thread):
                             received += len(data)
                         print(f"Arquivo {file_name} ({file_size} bytes) do usuario {self.username} recebido.")
                         server_broadcast(f"[!] Usuario {self.username} enviou o arquivo {file_name}.")
+
+                # Enviar arquivo a um cliente
                 elif cmd_args[0] == "download":
                     file_path = Path(FILES_DIR) / Path(cmd_args[1])
                     if file_path.exists():
